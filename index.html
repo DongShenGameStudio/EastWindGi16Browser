@@ -2,107 +2,111 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8"/>
-<meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>东神工作室 · 全都要浏览器</title>
+<meta content="width=device-width,initial-scale=1,user-scalable=no" name="viewport"/>
+<title>东风Gi16浏览器</title>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
 <style>
-:root{
-  --bg:#ffffff;--fg:#222;--line:#ddd;--accent:#0078ff;--tabBg:#f1f1f1;--tabActive:#fff;--tabText:#000;
-}
-[data-theme="dark"]{
-  --bg:#1e1e1e;--fg:#eaeaea;--line:#444;--accent:#4dabf7;--tabBg:#2c2c2c;--tabActive:#3c3c3c;--tabText:#fff;
-}
-*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,"Noto Sans",sans-serif}
-body{background:var(--bg);color:var(--fg)}
+:root{--bg:#fff;--fg:#222;--line:#ddd;--accent:#0078ff;--tabBg:#f1f1f1;--tabActive:#fff;--tabText:#000;}
+[data-theme="dark"]{--bg:#1e1e1e;--fg:#eaeaea;--line:#444;--accent:#4dabf7;--tabBg:#2c2c2c;--tabActive:#3c3c3c;--tabText:#fff;}
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,"Noto Sans",sans-serif;}
+body{background:var(--bg);color:var(--fg);-webkit-tap-highlight-color:transparent;}
 #wrapper{position:fixed;inset:0;display:flex;flex-direction:column;}
 #tabsWrap{display:flex;align-items:center;gap:4px;padding:6px 8px;overflow-x:auto;background:var(--accent);flex-shrink:0;}
 #tabsWrap::-webkit-scrollbar{display:none}
 .tab{cursor:pointer;white-space:nowrap;padding:6px 10px;border-radius:4px;background:var(--tabBg);color:var(--tabText);font-size:.85rem;flex-shrink:0}
 .tab.active{background:var(--tabActive);color:var(--accent)}
 .tab .close{margin-left:6px;color:#ff5f6d;font-size:.75rem}
-#searchBar{display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--accent);flex-shrink:0;}
-#searchBar input{flex:1;height:36px;border:none;border-radius:4px;padding:0 8px;font-size:1rem;background:var(--bg);color:var(--fg)}
-#searchBar button{height:36px;border:none;border-radius:4px;background:var(--tabActive);color:var(--accent);padding:0 12px;cursor:pointer}
-#searchBar select{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:4px;margin-left:4px}
+#searchBar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:6px 8px;background:var(--accent);flex-shrink:0;}
+#searchBar input{flex:1 1 240px;height:36px;border:none;border-radius:4px;padding:0 8px;font-size:1rem;background:var(--bg);color:var(--fg)}
+#searchBar button{height:36px;border:none;border-radius:4px;background:var(--tabActive);color:var(--accent);padding:0 12px;cursor:pointer;-webkit-touch-callout:none;-webkit-user-select:none;}
+#searchBar select{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:4px;margin-left:4px;font-size:.9rem;}
 iframe{width:100%;height:calc(100vh - 120px);border:none;background:var(--bg)}
 #errorText{display:none;text-align:center;margin-top:40px;color:var(--fg)}
 #errorText a{color:var(--accent)}
-.dlBtn{margin-left:auto;background:#28a745!important;color:#fff!important}
+@media(max-width:360px){#searchBar{gap:4px}#searchBar input{font-size:.9rem}#searchBar button{padding:0 10px;font-size:.9rem}}
 </style>
 </head>
 <body data-theme="light">
 <div id="wrapper">
   <div id="tabsWrap"></div>
-
   <div id="searchBar">
-    <input id="kwInput" placeholder="输入网址或关键词…" onkeydown="if(event.key==='Enter')goSearch()"/>
-    <button onclick="goSearch()"><i class="fas fa-search"></i></button>
-    <button onclick="historyBack()"><i class="fas fa-reply"></i></button>
-    <button onclick="refreshFrame()"><i class="fas fa-sync-alt"></i></button>
-    <select id="themeSel"><option value="light">🌞 浅色</option><option value="dark">🌙 深色</option></select>
-    <select id="langSel"><option value="zh">简体中文</option><option value="en">English</option></select>
-    <select id="uaSel"></select>
-    <button class="dlBtn" onclick="downloadCurrent()"><i class="fas fa-download"></i> 下载文件</button>
+    <input id="kwInput" placeholder="输入网址或关键词…"/>
+    <button type="button" id="btnSearch"><i class="fas fa-search"></i></button>
+    <button type="button" id="btnBack"><i class="fas fa-reply"></i></button>
+    <button type="button" id="btnRef"><i class="fas fa-sync-alt"></i></button>
+    <select id="themeSel"><option value="light">☀️ 浅色</option><option value="dark">⭐️ 深色</option></select>
+    <select id="langSel"><option value="zh">🇨🇳简体中文</option><option value="en">🇺🇸English</option></select>
+    <!-- UA 选择器：仅展示，不可改 -->
+    <select id="uaSel" disabled></select>
   </div>
-
   <iframe id="frameBox" src="about:blank"></iframe>
   <div id="errorText">
-    加载失败，可能被限制嵌入。<br/>
+    <span id="errMsg">加载失败</span><br/>
     <a id="openNewTab" href="about:blank" target="_blank">在新标签页打开</a>
   </div>
 </div>
 
 <script>
-/* ====== 多语言 ====== */
-const i18n={
-  zh:{newTab:'新标签页',down:'下载文件',placeholder:'输入网址或关键词…',fail:'加载失败'},
-  en:{newTab:'New Tab',down:'Download',placeholder:'Enter URL or keyword…',fail:'Load failed'}
-};
+/* ========== 多语言 ========== */
+const i18n={zh:{placeholder:'输入网址或关键词…',newTab:'新标签页',fail:'加载失败'},en:{placeholder:'Enter URL or keyword…',newTab:'New Tab',fail:'Load failed'}};
 let LANG='zh';
 function T(k){return i18n[LANG][k]||k}
 
-/* ====== UA 列表 ====== */
-const UA_LIST={
-  'eDEX (默认)':'Mozilla/5.0 (compatible; eDEX/1.0)',
-  'Windows':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-  'Android':'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36',
-  'iPhone':'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/537.36',
-  'iPad':'Mozilla/5.0 (iPad; CPU OS 16_0 like Mac OS X) AppleWebKit/537.36',
-  'Linux':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36',
-  'Mac':'Mozilla/5.0 (Macintosh; Intel Mac OS X 13_0) AppleWebKit/537.36',
-  'X11':'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.1)'
-};
-
-/* ====== 记忆恢复 ====== */
-const storage=window.localStorage;
-function loadMem(){
-  const t=storage.getItem('theme')||'light';
-  const l=storage.getItem('lang')||'zh';
-  const u=storage.getItem('ua')||'eDEX (默认)';
-  document.documentElement.setAttribute('data-theme',t);
-  themeSel.value=t; langSel.value=l;
-  setLang(l);
-  buildUaSel(u);
+/* ========== 记忆 ========== */
+function readMem(){
+  const c=document.cookie.match(/ew16=(\w+):(\w+):([^;]+)/);
+  return {theme:(c&&c[1])||'light',lang:(c&&c[2])||'zh',ua:(c&&c[3])||'默认系统UA'};
 }
-loadMem();
+function saveMem(){
+  const arr=[themeSel.value,langSel.value,uaSel.value];
+  document.cookie=`ew16=${arr.join(':')};path=/;max-age=31536000`;
+}
+const mem=readMem();
+document.documentElement.setAttribute('data-theme',mem.theme);
+LANG=mem.lang;
 
-themeSel.onchange=e=>{const v=e.target.value; storage.setItem('theme',v); document.documentElement.setAttribute('data-theme',v)};
-langSel.onchange=e=>{const v=e.target.value; storage.setItem('lang',v); setLang(v); location.reload()}; // 简易刷新
-uaSel.onchange=e=>{const v=e.target.value; storage.setItem('ua',v); location.reload()};
+/* ========== 初始化控件 ========== */
+themeSel.value=mem.theme; langSel.value=mem.lang;
+buildUaSel(mem.ua);
+document.getElementById('kwInput').placeholder=T('placeholder');
+document.getElementById('errMsg').innerText=T('fail');
 
-function setLang(l){LANG=l; document.getElementById('kwInput').placeholder=T('placeholder')}
+/* ========== 主题 & 语言：不刷新整页 ========== */
+themeSel.onchange=(e=>{
+  saveMem();
+  document.documentElement.setAttribute('data-theme',e.target.value);
+  if(activeId){
+    const tab=tabs.find(t=>t.id===activeId);
+    if(tab){
+      const f=document.getElementById('frameBox');
+      f.src='about:blank';setTimeout(()=>f.src=tab.url,50);
+    }
+  }
+});
+langSel.onchange=(e=>{
+  saveMem();
+  LANG=e.target.value;
+  document.getElementById('kwInput').placeholder=T('placeholder');
+  document.getElementById('errMsg').innerText=T('fail');
+  if(activeId){
+    const tab=tabs.find(t=>t.id===activeId);
+    if(tab){
+      const f=document.getElementById('frameBox');
+      f.src='about:blank';setTimeout(()=>f.src=tab.url,50);
+    }
+  }
+});
 
+/* ========== UA 选择器：仅展示，锁死 ========== */
 function buildUaSel(def){
   const sel=document.getElementById('uaSel');
   sel.innerHTML='';
-  for(const [name,ua] of Object.entries(UA_LIST)){
-    const op=new Option(name,name); op.selected=name===def; sel.add(op);
-  }
-  if(def&&UA_LIST[def])Object.defineProperty(navigator,'userAgent',{value:UA_LIST[def],writable:false,configurable:true});
+  sel.add(new Option(def,def,true,true));
+  sel.disabled=true;
 }
 
-/* ====== 标签页管理 ====== */
-let tabs=[]; let activeId=null;
+/* ========== 标签页管理 ========== */
+let tabs=[];let activeId=null;
 function renderTabs(){
   const wrap=document.getElementById('tabsWrap');
   wrap.innerHTML='';
@@ -121,7 +125,7 @@ function addTab(title,url){
   renderTabs();
   loadUrl(url);
 }
-function switchTab(id){activeId=id; renderTabs(); document.getElementById('frameBox').src=tabs.find(t=>t.id===id).url}
+function switchTab(id){activeId=id;renderTabs();document.getElementById('frameBox').src=tabs.find(t=>t.id===id).url}
 function delTab(id,e){
   e.stopPropagation();
   tabs=tabs.filter(t=>t.id!==id);
@@ -130,69 +134,56 @@ function delTab(id,e){
   document.getElementById('frameBox').src=activeId?tabs.find(t=>t.id===activeId).url:'about:blank';
 }
 
-/* ====== 智能网址/搜索分流 ====== */
+/* ========== 搜索 / 跳转 ========== */
 function goSearch(){
   const raw=document.getElementById('kwInput').value.trim();
   if(!raw)return;
   const isUrl=/^https?:\/\//.test(raw)||/\.\w+$/.test(raw);
   if(isUrl){
-    let url=raw; if(!url.startsWith('http'))url='https://'+url;
+    let url=raw;if(!url.startsWith('http'))url='https://'+url;
     const exist=tabs.find(t=>t.url===url);
     if(exist){switchTab(exist.id)}else{addTab(url,url)}
   }else{
-    // 关键词 → 整页跳转 Bing，不被拦截
     window.location.href='https://www.bing.com/search?q='+encodeURIComponent(raw);
   }
 }
+document.getElementById('btnSearch').addEventListener('click',goSearch);
+document.getElementById('kwInput').addEventListener('keydown',e=>{if(e.key==='Enter')goSearch()});
 
-/* ====== 载入地址 + 标题嗅探 ====== */
+/* ========== 工具按钮 ========== */
+document.getElementById('btnBack').addEventListener('click',()=>{
+  const f=document.getElementById('frameBox');
+  try{f.contentWindow.history.back()}catch(e){history.back()}
+});
+document.getElementById('btnRef').addEventListener('click',()=>{
+  if(activeId){
+    const tab=tabs.find(t=>t.id===activeId);
+    if(tab)loadUrl(tab.url);
+  }
+});
+
+/* ========== 载入 + 标题嗅探 ========== */
 function loadUrl(url){
   const f=document.getElementById('frameBox');
   const err=document.getElementById('errorText');
   const link=document.getElementById('openNewTab');
-  f.style.display='block'; err.style.display='none';
+  f.style.display='block';err.style.display='none';
   f.src=url;
-  const t=setTimeout(()=>{f.style.display='none'; err.style.display='block'; link.href=url},5000);
+  const t=setTimeout(()=>{f.style.display='none';err.style.display='block';link.href=url},5000);
   f.onload=()=>{
     clearTimeout(t);
     try{
       const title=f.contentDocument.title||T('newTab');
       const tab=tabs.find(t=>t.id===activeId);
-      if(tab){tab.title=title; renderTabs();}
+      if(tab){tab.title=title;renderTabs();}
     }catch{/*跨域*/}
   };
   f.onerror=()=>clearTimeout(t);
 }
 
-/* ====== 下载当前资源 ====== */
-function downloadCurrent(){
-  const f=document.getElementById('frameBox');
-  const url=f.src;
-  if(!url||url==='about:blank')return alert('暂无页面可下载');
-  // 创建 a 标签触发系统下载器
-  const a=document.createElement('a');
-  a.href=url;
-  a.download=''; // 让浏览器自动识别文件名
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
-
-/* ====== 工具按钮 ====== */
-function historyBack(){
-  const f=document.getElementById('frameBox');
-  try{f.contentWindow.history.back()}catch(e){history.back()}
-}
-function refreshFrame(){
-  if(activeId){
-    const tab=tabs.find(t=>t.id===activeId);
-    if(tab)loadUrl(tab.url);
-  }
-}
-
-/* ====== 初始欢迎页 ====== */
+/* ========== 初始欢迎页 ========== */
 window.onload=()=>{
-  if(tabs.length===0)addTab('欢迎页',https://dongshengamestudio.github.io/HelloEastWindGi16Browser/'');
+  if(tabs.length===0)addTab('欢迎页','https://dongshengamestudio.github.io/HelloEastWindGi16Browser/');
 };
 </script>
 </body></html>
